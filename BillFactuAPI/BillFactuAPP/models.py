@@ -1,7 +1,7 @@
 from django.db import models
 
 class Usuario(models.Model):
-    nombre = models.CharField(max_length=50, null=False) # Este campo es para el nombre del usuario
+    nombre = models.CharField(max_length=50, null=False, unique=True) # Este campo es para el nombre del usuario
     correo = models.EmailField(max_length=50, null=False, unique=True) # Este campo es para el correo del usuario
     contrasena = models.CharField(max_length=50, null=False) # Este campo es para la contraseña del usuario
     token = models.CharField(unique=True, max_length=45) # Este campo es para el token del usuario
