@@ -19,8 +19,13 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 
+from BillFactuAPP import endpoints
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('login/', endpoints.login),
+    path('register/', endpoints.register),
+    path('logout/', endpoints.logout),
 ]
 
 #Este codigo es para poder servir los archivos en django con el modo debug activado en models, si esto se cambia dejaremos de poder mostrar los archivos
