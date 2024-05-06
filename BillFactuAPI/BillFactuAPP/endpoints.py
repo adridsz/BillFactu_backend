@@ -216,3 +216,26 @@ def prefacturas(request):
     else:
         # Si el método de la solicitud no es GET, devolvemos un error
         return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+def token_valido(request):
+    # Verificamos si el método de la solicitud es GET
+    if request.method == 'GET':
+        # Obtenemos el token de la solicitud
+        token = request.headers.get('Authorization')
+        # Verificamos si el token está presente
+        if token is None:
+            # Si no está presente, devolvemos un error
+            return JsonResponse({'error': 'Token no encontrado'}, status=404)
+
+        # Intentamos obtener el usuario por el token
+        try:
+            usuario = Usuario.objects.get(token=token)
+        except Usuario.DoesNotExist:
+            # Si no existe, devolvemos un error
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        # Devolvemos un mensaje de éxito
+        return JsonResponse({'mensaje': 'Token válido'})
+    else:
+        # Si el método de la solicitud no es GET, devolvemos un error
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
