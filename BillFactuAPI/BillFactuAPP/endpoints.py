@@ -239,3 +239,68 @@ def token_valido(request):
     else:
         # Si el método de la solicitud no es GET, devolvemos un error
         return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+def empresas(request):
+    # Verificamos si el método de la solicitud es GET
+    if request.method == 'GET':
+        # Obtenemos el token de la solicitud
+        token = request.headers.get('Authorization')
+        # Verificamos si el token está presente
+        if token is None:
+            # Si no está presente, devolvemos un error
+            return JsonResponse({'error': 'Token no encontrado'}, status=404)
+
+        # Intentamos obtener el usuario por el token
+        try:
+            usuario = Usuario.objects.get(token=token)
+        except Usuario.DoesNotExist:
+            # Si no existe, devolvemos un error
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        # Obtenemos todas las empresas de nuestra aplicación
+        empresas = Empresa.objects.all()
+        # Creamos una lista vacía para almacenar las empresas
+        empresas_list = []
+
+        # Devolvemos la lista de empresas
+        return JsonResponse(empresas_list, safe=False)
+    else:
+        # Si el método de la solicitud no es GET, devolvemos un error
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+def crear_empresas(request):
+    # Verificamos si el método de la solicitud es POST
+    if request.method == 'POST':
+        # Obtenemos el token de la solicitud
+        token = request.headers.get('Authorization')
+        # Verificamos si el token está presente
+        if token is None:
+            # Si no está presente, devolvemos un error
+            return JsonResponse({'error': 'Token no encontrado'}, status=404)
+
+        # Intentamos obtener el usuario por el token
+        try:
+            usuario = Usuario.objects.get(token=token)
+        except Usuario.DoesNotExist:
+            # Si no existe, devolvemos un error
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        # Obtenemos el nombre de la empresa de la solicitud
+        body_json = json.loads(request.body)
+        json_nombre = body_json['nombre']
+
+        # Comprobamos si el usuario es jefe antes de crear la empresa
+        if usuario.jefe == False:
+            # Si no es jefe, devolvemos un error
+            return JsonResponse({'error': 'No tienes permisos para crear una empresa'}, status=403)
+
+        # Creamos la empresa
+        empresa = Empresa(nombre=json_nombre, usuario=usuario)
+        # Guardamos la empresa
+        empresa.save()
+
+        # Devolvemos un mensaje de éxito
+        return JsonResponse({'mensaje': 'Empresa creada correctamente'})
+    else:
+        # Si el método de la solicitud no es POST, devolvemos un error
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
