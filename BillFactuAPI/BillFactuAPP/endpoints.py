@@ -89,6 +89,7 @@ def register(request):
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 # Definimos la vista para el cierre de sesión
+@csrf_exempt
 def logout(request):
     # Verificamos si el método de la solicitud es POST
     if request.method == 'POST':
@@ -117,6 +118,7 @@ def logout(request):
         # Si el método de la solicitud no es DELETE, devolvemos un error
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
+@csrf_exempt
 def inicio(request):
     # Verificamos si el método de la solicitud es GET
     if request.method == 'GET':
@@ -147,6 +149,7 @@ def inicio(request):
         # Si el método de la solicitud no es GET, devolvemos un error
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
+@csrf_exempt
 def facturas(request):
     # Verificamos si el método de la solicitud es GET
     if request.method == 'GET':
@@ -182,6 +185,7 @@ def facturas(request):
         # Si el método de la solicitud no es GET, devolvemos un error
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
+@csrf_exempt
 def prefacturas(request):
     # Verificamos si el método de la solicitud es GET
     if request.method == 'GET':
@@ -217,6 +221,7 @@ def prefacturas(request):
         # Si el método de la solicitud no es GET, devolvemos un error
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
+@csrf_exempt
 def token_valido(request):
     # Verificamos si el método de la solicitud es GET
     if request.method == 'GET':
@@ -239,3 +244,120 @@ def token_valido(request):
     else:
         # Si el método de la solicitud no es GET, devolvemos un error
         return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@csrf_exempt
+def empresas(request):
+    # Verificamos si el método de la solicitud es GET
+    if request.method == 'GET':
+        # Obtenemos el token de la solicitud
+        token = request.headers.get('Authorization')
+        # Verificamos si el token está presente
+        if token is None:
+            # Si no está presente, devolvemos un error
+            return JsonResponse({'error': 'Token no encontrado'}, status=404)
+
+        # Intentamos obtener el usuario por el token
+        try:
+            usuario = Usuario.objects.get(token=token)
+        except Usuario.DoesNotExist:
+            # Si no existe, devolvemos un error
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        # Obtenemos el parámetro de consulta 'empresa', si está presente
+        empresa_query = request.GET.get('empresa')
+
+        if empresa_query:
+            # Si el parámetro de consulta 'empresa' está presente, filtramos las empresas por nombre
+            empresas = Empresa.objects.filter(nombre__icontains=empresa_query)
+        else:
+            # Si no está presente, obtenemos todas las empresas
+            empresas = Empresa.objects.all()
+
+        # Creamos una lista con los nombres de las empresas
+        empresas_list = [empresa.nombre for empresa in empresas]
+
+        # Devolvemos la lista de empresas
+        return JsonResponse(empresas_list, safe=False)
+    else:
+        # Si el método de la solicitud no es GET, devolvemos un error
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@csrf_exempt
+def crear_empresas(request):
+    # Verificamos si el método de la solicitud es POST
+    if request.method == 'POST':
+        # Obtenemos el token de la solicitud
+        token = request.headers.get('Authorization')
+        # Verificamos si el token está presente
+        if token is None:
+            # Si no está presente, devolvemos un error
+            return JsonResponse({'error': 'Token no encontrado'}, status=404)
+
+        # Intentamos obtener el usuario por el token
+        try:
+            usuario = Usuario.objects.get(token=token)
+        except Usuario.DoesNotExist:
+            # Si no existe, devolvemos un error
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        # Obtenemos el nombre de la empresa de la solicitud
+        body_json = json.loads(request.body)
+        json_nombre = body_json['nombre']
+
+        # Comprobamos si el usuario es jefe antes de crear la empresa
+        if usuario.jefe == False:
+            # Si no es jefe, devolvemos un error
+            return JsonResponse({'error': 'No tienes permisos para crear una empresa'}, status=403)
+
+        # Creamos la empresa
+        empresa = Empresa(nombre=json_nombre, usuario=usuario)
+        # Guardamos la empresa
+        empresa.save()
+
+        # Devolvemos un mensaje de éxito
+        return JsonResponse({'mensaje': 'Empresa creada correctamente'})
+    else:
+        # Si el método de la solicitud no es POST, devolvemos un error
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+# Definimos la vista para unir a un usuario a una empresa
+@csrf_exempt
+def unir_empresa(request):
+    if request.method == 'POST':
+        # Obtenemos el token de la solicitud
+        token = request.headers.get('Authorization')
+        # Verificamos si el token está presente
+        if token is None:
+            # Si no está presente, devolvemos un error
+            return JsonResponse({'error': 'Token no encontrado'}, status=404)
+
+        # Intentamos obtener el usuario por el token
+        try:
+            usuario = Usuario.objects.get(token=token)
+        except Usuario.DoesNotExist:
+            # Si no existe, devolvemos un error
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        # Obtenemos el nombre de la empresa de la solicitud
+        body_json = json.loads(request.body)
+        json_nombre = body_json['nombre']
+
+        # Intentamos obtener la empresa por el nombre
+        try:
+            empresa = Empresa.objects.get(nombre=json_nombre)
+        except Empresa.DoesNotExist:
+            # Si no existe, devolvemos un error
+            return JsonResponse({'error': 'Empresa no encontrada'}, status=404)
+
+        # Comprobamos si el usuario ya es miembro de la empresa
+        if Miembros.objects.filter(usuario=usuario, empresa=empresa).exists():
+            # Si es miembro, devolvemos un error
+            return JsonResponse({'error': 'Ya eres miembro de la empresa'}, status=400)
+
+        # Creamos el miembro
+        miembro = Miembros(usuario=usuario, empresa=empresa)
+        # Guardamos el miembro
+        miembro.save()
+
+        # Devolvemos un mensaje de éxito
+        return JsonResponse({'mensaje': 'Unido a la empresa correctamente'})

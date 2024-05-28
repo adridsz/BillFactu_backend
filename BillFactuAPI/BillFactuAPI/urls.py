@@ -30,6 +30,9 @@ urlpatterns = [
     path('facturas/', endpoints.facturas),
     path('prefacturas/', endpoints.prefacturas),
     path('tokenvalido/', endpoints.token_valido),
+    path('empresas/', endpoints.empresas),
+    path('crearempresas/', endpoints.crear_empresas),
+    path('unirempresa/', endpoints.unir_empresa),
 ]
 
 #Este codigo es para poder servir los archivos en django con el modo debug activado en models, si esto se cambia dejaremos de poder mostrar los archivos
