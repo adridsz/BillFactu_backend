@@ -152,7 +152,7 @@ def inicio(request):
 @csrf_exempt
 def facturas(request):
     # Verificamos si el método de la solicitud es GET
-    if request.method == 'GET':
+    if request.method == 'POST':
         # Obtenemos el token de la solicitud
         token = request.headers.get('Authorization')
         # Verificamos si el token está presente
@@ -217,6 +217,180 @@ def prefacturas(request):
         fechas = [prefactura.fecha for prefactura in prefacturas]
         # Devolvemos las fechas de las prefacturas
         return JsonResponse({'fechas': fechas})
+    else:
+        # Si el método de la solicitud no es GET, devolvemos un error
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+# Definimos la vista para subir una factura
+@csrf_exempt
+def subir_factura(request):
+    # Verificamos si el método de la solicitud es POST
+    if request.method == 'POST':
+        # Obtenemos el token de la solicitud
+        token = request.headers.get('Authorization')
+        # Verificamos si el token está presente
+        if token is None:
+            # Si no está presente, devolvemos un error
+            return JsonResponse({'error': 'Token no encontrado'}, status=404)
+
+        # Intentamos obtener el usuario por el token
+        try:
+            usuario = Usuario.objects.get(token=token)
+        except Usuario.DoesNotExist:
+            # Si no existe, devolvemos un error
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        # Obtenemos el cuerpo de la solicitudº
+        body_json = json.loads(request.body)
+
+        # Comprobamos si el usuario es jefe de alguna empresa y en caso de que lo sea subimos la factura a la empresa
+        if usuario.jefe:
+            # Obtenemos la empresa del usuario
+            empresa = Empresa.objects.get(usuario=usuario)
+            # Obtenemos la factura de la solicitud
+            factura = body_json['factura']
+            # Obtenemos la fecha de la solicitud
+            fecha = body_json['fecha']
+            # Creamos la factura
+            factura = Factura(empresa=empresa, factura=factura, fecha=fecha)
+            # Guardamos la factura
+            factura.save()
+            # Devolvemos un mensaje de éxito
+            return JsonResponse({'mensaje': 'Factura subida correctamente'})
+        else:
+            # Si no es jefe, devolvemos un error
+            return JsonResponse({'error': 'No tienes permisos para subir una factura'}, status=403)
+    else:
+        # Si el método de la solicitud no es POST, devolvemos un error
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+# Definimos la vista para subir una prefactura
+@csrf_exempt
+def subir_prefactura(request):
+    # Verificamos si el método de la solicitud es POST
+    if request.method == 'POST':
+        # Obtenemos el token de la solicitud
+        token = request.headers.get('Authorization')
+        # Verificamos si el token está presente
+        if token is None:
+            # Si no está presente, devolvemos un error
+            return JsonResponse({'error': 'Token no encontrado'}, status=404)
+
+        # Intentamos obtener el usuario por el token
+        try:
+            usuario = Usuario.objects.get(token=token)
+        except Usuario.DoesNotExist:
+            # Si no existe, devolvemos un error
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        # Obtenemos el cuerpo de la solicitud
+        body_json = json.loads(request.body)
+
+        # Comprobamos si el usuario es jefe de alguna empresa y en caso de que lo sea subimos la prefactura a la empresa
+        if usuario.jefe:
+            # Obtenemos la empresa del usuario
+            empresa = Empresa.objects.get(usuario=usuario)
+            # Obtenemos la prefactura de la solicitud
+            prefactura = body_json['prefactura']
+            # Obtenemos la fecha de la solicitud
+            fecha = body_json['fecha']
+            # Creamos la prefactura
+            prefactura = Prefactura(empresa=empresa, prefactura=prefactura, fecha=fecha)
+            # Guardamos la prefactura
+            prefactura.save()
+            # Devolvemos un mensaje de éxito
+            return JsonResponse({'mensaje': 'Prefactura subida correctamente'})
+        else:
+            # Si no es jefe, devolvemos un error
+            return JsonResponse({'error': 'No tienes permisos para subir una prefactura'}, status=403)
+    else:
+        # Si el método de la solicitud no es POST, devolvemos un error
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+# Definimos la vista para poder descargar una factura
+@csrf_exempt
+def descargar_factura(request):
+    # Verificamos si el método de la solicitud es GET
+    if request.method == 'GET':
+        # Obtenemos el token de la solicitud
+        token = request.headers.get('Authorization')
+        # Verificamos si el token está presente
+        if token is None:
+            # Si no está presente, devolvemos un error
+            return JsonResponse({'error': 'Token no encontrado'}, status=404)
+
+        # Intentamos obtener el usuario por el token
+        try:
+            usuario = Usuario.objects.get(token=token)
+        except Usuario.DoesNotExist:
+            # Si no existe, devolvemos un error
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        # Obtenemos la empresa a la que quiere acceder el usuario la cual es enviada en el cuerpo de la solicitud
+        body_json = json.loads(request.body)
+        json_empresa = body_json['empresa']
+        # Intentamos obtener la empresa por el nombre
+        try:
+            empresa = Empresa.objects.get(nombre=json_empresa)
+        except Empresa.DoesNotExist:
+            # Si no existe, devolvemos un error
+            return JsonResponse({'error': 'Empresa no encontrada'}, status=404)
+
+        # Obtenemos la fecha de la solicitud
+        fecha = body_json['fecha']
+        # Intentamos obtener la factura por la empresa y la fecha
+        try:
+            factura = Factura.objects.get(empresa=empresa, fecha=fecha)
+        except Factura.DoesNotExist:
+            # Si no existe, devolvemos un error
+            return JsonResponse({'error': 'Factura no encontrada'}, status=404)
+
+        # Devolvemos la factura
+        return JsonResponse({'factura': factura.factura.url})
+    else:
+        # Si el método de la solicitud no es GET, devolvemos un error
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+# Definimos la vista para poder descargar una prefactura
+@csrf_exempt
+def descargar_prefactura(request):
+    # Verificamos si el método de la solicitud es GET
+    if request.method == 'GET':
+        # Obtenemos el token de la solicitud
+        token = request.headers.get('Authorization')
+        # Verificamos si el token está presente
+        if token is None:
+            # Si no está presente, devolvemos un error
+            return JsonResponse({'error': 'Token no encontrado'}, status=404)
+
+        # Intentamos obtener el usuario por el token
+        try:
+            usuario = Usuario.objects.get(token=token)
+        except Usuario.DoesNotExist:
+            # Si no existe, devolvemos un error
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        # Obtenemos la empresa a la que quiere acceder el usuario la cual es enviada en el cuerpo de la solicitud
+        body_json = json.loads(request.body)
+        json_empresa = body_json['empresa']
+        # Intentamos obtener la empresa por el nombre
+        try:
+            empresa = Empresa.objects.get(nombre=json_empresa)
+        except Empresa.DoesNotExist:
+            # Si no existe, devolvemos un error
+            return JsonResponse({'error': 'Empresa no encontrada'}, status=404)
+
+        # Obtenemos la fecha de la solicitud
+        fecha = body_json['fecha']
+        # Intentamos obtener la prefactura por la empresa y la fecha
+        try:
+            prefactura = Prefactura.objects.get(empresa=empresa, fecha=fecha)
+        except Prefactura.DoesNotExist:
+            # Si no existe, devolvemos un error
+            return JsonResponse({'error': 'Prefactura no encontrada'}, status=404)
+
+        # Devolvemos la prefactura
+        return JsonResponse({'prefactura': prefactura.prefactura.url})
     else:
         # Si el método de la solicitud no es GET, devolvemos un error
         return JsonResponse({'error': 'Método no permitido'}, status=405)
@@ -361,3 +535,32 @@ def unir_empresa(request):
 
         # Devolvemos un mensaje de éxito
         return JsonResponse({'mensaje': 'Unido a la empresa correctamente'})
+
+# Definimos la vista para ver las empresas a las que pertenece un usuario
+@csrf_exempt
+def ver_empresas(request):
+    # Verificamos si el método de la solicitud es GET
+    if request.method == 'GET':
+        # Obtenemos el token de la solicitud
+        token = request.headers.get('Authorization')
+        # Verificamos si el token está presente
+        if token is None:
+            # Si no está presente, devolvemos un error
+            return JsonResponse({'error': 'Token no encontrado'}, status=404)
+
+        # Intentamos obtener el usuario por el token
+        try:
+            usuario = Usuario.objects.get(token=token)
+        except Usuario.DoesNotExist:
+            # Si no existe, devolvemos un error
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        # Obtenemos las empresas del usuario
+        empresas = Miembros.objects.filter(usuario=usuario)
+        # Creamos una lista con los nombres de las empresas
+        empresas_list = [empresa.empresa.nombre for empresa in empresas]
+        # Devolvemos la lista de empresas
+        return JsonResponse(empresas_list, safe=False)
+    else:
+        # Si el método de la solicitud no es GET, devolvemos un error
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
