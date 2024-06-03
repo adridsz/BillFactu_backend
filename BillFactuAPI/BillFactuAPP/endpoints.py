@@ -5,7 +5,7 @@ import json
 
 # Importamos JsonResponse para devolver respuestas JSON
 # Importamos csrf_exempt para eliminar la protección CSRF
-from django.http import JsonResponse
+from django.http import JsonResponse, QueryDict
 from django.views.decorators.csrf import csrf_exempt
 
 # Importamos el modelo Usuario
@@ -240,17 +240,18 @@ def subir_factura(request):
             # Si no existe, devolvemos un error
             return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
 
-        # Obtenemos el cuerpo de la solicitudº
-        body_json = json.loads(request.body)
+        # Obtenemos la fecha y la factura de la solicitud
+        fecha = request.POST.get('fecha')
+        if fecha is None:
+            return JsonResponse({'error': 'Fecha no proporcionada'}, status=400)
+        factura = request.FILES.get('factura')
+        if factura is None:
+            return JsonResponse({'error': 'Factura no proporcionada'}, status=400)
 
         # Comprobamos si el usuario es jefe de alguna empresa y en caso de que lo sea subimos la factura a la empresa
         if usuario.jefe:
             # Obtenemos la empresa del usuario
             empresa = Empresa.objects.get(usuario=usuario)
-            # Obtenemos la factura de la solicitud
-            factura = body_json['factura']
-            # Obtenemos la fecha de la solicitud
-            fecha = body_json['fecha']
             # Creamos la factura
             factura = Factura(empresa=empresa, factura=factura, fecha=fecha)
             # Guardamos la factura
@@ -310,8 +311,8 @@ def subir_prefactura(request):
 # Definimos la vista para poder descargar una factura
 @csrf_exempt
 def descargar_factura(request):
-    # Verificamos si el método de la solicitud es GET
-    if request.method == 'GET':
+    # Verificamos si el método de la solicitud es POST
+    if request.method == 'POST':
         # Obtenemos el token de la solicitud
         token = request.headers.get('Authorization')
         # Verificamos si el token está presente
