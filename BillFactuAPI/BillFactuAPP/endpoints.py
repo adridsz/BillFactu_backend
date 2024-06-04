@@ -187,8 +187,8 @@ def facturas(request):
 
 @csrf_exempt
 def prefacturas(request):
-    # Verificamos si el método de la solicitud es GET
-    if request.method == 'GET':
+    # Verificamos si el método de la solicitud es POST
+    if request.method == 'POST':
         # Obtenemos el token de la solicitud
         token = request.headers.get('Authorization')
         # Verificamos si el token está presente
@@ -284,23 +284,24 @@ def subir_prefactura(request):
             # Si no existe, devolvemos un error
             return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
 
-        # Obtenemos el cuerpo de la solicitud
-        body_json = json.loads(request.body)
+        # Obtenemos la fecha y la prefactura de la solicitud
+        fecha = request.POST.get('fecha')
+        if fecha is None:
+            return JsonResponse({'error': 'Fecha no proporcionada'}, status=400)
+        prefactura = request.FILES.get('prefactura')
+        if prefactura is None:
+            return JsonResponse({'error': 'PreFactura no proporcionada'}, status=400)
 
         # Comprobamos si el usuario es jefe de alguna empresa y en caso de que lo sea subimos la prefactura a la empresa
         if usuario.jefe:
             # Obtenemos la empresa del usuario
             empresa = Empresa.objects.get(usuario=usuario)
-            # Obtenemos la prefactura de la solicitud
-            prefactura = body_json['prefactura']
-            # Obtenemos la fecha de la solicitud
-            fecha = body_json['fecha']
             # Creamos la prefactura
             prefactura = Prefactura(empresa=empresa, prefactura=prefactura, fecha=fecha)
-            # Guardamos la prefactura
+            # Guardamos la factura
             prefactura.save()
             # Devolvemos un mensaje de éxito
-            return JsonResponse({'mensaje': 'Prefactura subida correctamente'})
+            return JsonResponse({'mensaje': 'PreFactura subida correctamente'})
         else:
             # Si no es jefe, devolvemos un error
             return JsonResponse({'error': 'No tienes permisos para subir una prefactura'}, status=403)
@@ -356,7 +357,7 @@ def descargar_factura(request):
 @csrf_exempt
 def descargar_prefactura(request):
     # Verificamos si el método de la solicitud es GET
-    if request.method == 'GET':
+    if request.method == 'POST':
         # Obtenemos el token de la solicitud
         token = request.headers.get('Authorization')
         # Verificamos si el token está presente
